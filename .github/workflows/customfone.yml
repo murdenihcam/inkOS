@@ -47,6 +47,16 @@ jobs:
                  " try { findNavController().popBackStack() } catch (_: Exception) {}; return@setOnKeyListener true }\n")
           s = s[:i] + add + s[i:]
           open(p, "w").write(s)
+                    p = base + "ui/RecentsFragment.kt"
+          s = open(p).read()
+          a = s.index("val recentApps by remember(")
+          b = s.index("LaunchedEffect(refreshTriggerCounter)")
+          s = s[:a] + ("val recentApps by androidx.compose.runtime.produceState(cfRecentsCache, localRefreshTrigger, showStats, appsDrawer.recentsUsageFilter, appsDrawer.appList) {\n"
+                       " val r = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { getRecentApps(context, appsDrawer.appList, showStats, appsDrawer.recentsUsageFilter) }\n"
+                       " cfRecentsCache = r; value = r }\n\n") + s[b:]
+          s = s.replace('app.activityPackage == "app.inkos" ||', 'app.activityPackage == "app.inkos" || app.activityPackage == "app.inkos.cf" ||', 1)
+          s += "\nprivate var cfRecentsCache: List<com.github.gezimos.inkos.ui.compose.RecentAppItem> = emptyList()\n"
+          open(p, "w").write(s)
           p = "app/build.gradle.kts"
           s = open(p).read()
           s = s.replace('applicationId = "app.inkos"', 'applicationId = "app.inkos.cf"', 1)
