@@ -39,6 +39,14 @@ jobs:
                  " try { findNavController().popBackStack() } catch (_: Exception) {}; return@onPreviewKeyEvent true }\n")
           s = s[:j] + add + s[j:]
           open(p, "w").write(s)
+           p = base + "ui/notifications/LettersFragment.kt"
+          s = open(p).read()
+          anchor = "view.setOnKeyListener { v, keyCode, event ->"
+          i = s.index(anchor) + len(anchor)
+          add = ("\n if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && event.action == KeyEvent.ACTION_DOWN) {"
+                 " try { findNavController().popBackStack() } catch (_: Exception) {}; return@setOnKeyListener true }\n")
+          s = s[:i] + add + s[i:]
+          open(p, "w").write(s)
           p = "app/build.gradle.kts"
           s = open(p).read()
           s = s.replace('applicationId = "app.inkos"', 'applicationId = "app.inkos.cf"', 1)
