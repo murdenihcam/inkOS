@@ -18,7 +18,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
-      - name: Apply Customfone changes (F1/F2 on Letters, D-pad right leaves Recents)
+      - name: Apply Customfone changes (Customfone patches)
         shell: python3 {0}
         run: |
           base = "app/src/main/java/com/github/gezimos/inkos/"
@@ -39,7 +39,7 @@ jobs:
                  " try { findNavController().popBackStack() } catch (_: Exception) {}; return@onPreviewKeyEvent true }\n")
           s = s[:j] + add + s[j:]
           open(p, "w").write(s)
-           p = base + "ui/notifications/LettersFragment.kt"
+          p = base + "ui/notifications/LettersFragment.kt"
           s = open(p).read()
           anchor = "view.setOnKeyListener { v, keyCode, event ->"
           i = s.index(anchor) + len(anchor)
@@ -47,7 +47,7 @@ jobs:
                  " try { findNavController().popBackStack() } catch (_: Exception) {}; return@setOnKeyListener true }\n")
           s = s[:i] + add + s[i:]
           open(p, "w").write(s)
-                    p = base + "ui/RecentsFragment.kt"
+          p = base + "ui/RecentsFragment.kt"
           s = open(p).read()
           a = s.index("val recentApps by remember(")
           b = s.index("LaunchedEffect(refreshTriggerCounter)")
