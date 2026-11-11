@@ -1,0 +1,64 @@
+name: Customfone inkOS build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Apply Customfone changes (F1/F2 on Letters, D-pad right leaves Recents)
+        shell: python3 {0}
+        run: |
+          base = "app/src/main/java/com/github/gezimos/inkos/"
+          p = base + "ui/compose/NavHelper.kt"
+          s = open(p).read()
+          s = s.replace("KeyEvent.KEYCODE_1 -> NotificationKeyAction.Dismiss",
+                        "KeyEvent.KEYCODE_1, android.view.KeyEvent.KEYCODE_F1 -> NotificationKeyAction.Dismiss", 1)
+          s = s.replace("KeyEvent.KEYCODE_3 -> NotificationKeyAction.Open",
+                        "KeyEvent.KEYCODE_3, android.view.KeyEvent.KEYCODE_F2 -> NotificationKeyAction.Open", 1)
+          assert "KEYCODE_F1" in s and "KEYCODE_F2" in s
+          open(p, "w").write(s)
+          p = base + "ui/RecentsFragment.kt"
+          s = open(p).read()
+          anchor = "if (keyEvent.type == KeyEventType.KeyUp && headerFocused) {"
+          i = s.index(anchor)
+          j = s.index("}", i) + 1
+          add = ("\n if (keyEvent.type == KeyEventType.KeyDown && !headerFocused && keyEvent.key == Key.DirectionRight) {"
+                 " try { findNavController().popBackStack() } catch (_: Exception) {}; return@onPreviewKeyEvent true }\n")
+          s = s[:j] + add + s[j:]
+          open(p, "w").write(s)
+          p = "app/build.gradle.kts"
+          s = open(p).read()
+          s = s.replace('applicationId = "app.inkos"', 'applicationId = "app.inkos.cf"', 1)
+          assert "app.inkos.cf" in s
+          open(p, "w").write(s)
+          print("patched")
+
+      - name: Make signing key
+        run: |
+          keytool -genkeypair -storetype PKCS12 -keystore $GITHUB_WORKSPACE/cf.p12 -storepass customfone -keypass customfone -alias cf -keyalg RSA -keysize 2048 -validity 10000 -dname CN=customfone
+
+      - name: Build
+        env:
+          KEYSTORE_FILE: ${{ github.workspace }}/cf.p12
+          KEYSTORE_PASSWORD: customfone
+          KEY_ALIAS: cf
+          KEY_PASSWORD: customfone
+        run: chmod +x gradlew && ./gradlew assembleRelease
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: inkos-customfone
+          path: app/build/outputs/apk/release/*.apk
